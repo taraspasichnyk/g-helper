@@ -151,6 +151,7 @@ namespace GHelper
             checkPrerelease.Checked = AppConfig.Is("allow_prerelease");
             checkPrerelease.CheckedChanged += (s, e) => {
                 AppConfig.Set("allow_prerelease", checkPrerelease.Checked ? 1 : 0);
+                AppConfig.Set("skip_version", "");
                 try { Program.settingsForm?.RecheckUpdatesFromExtra(); } catch { }
             };
             

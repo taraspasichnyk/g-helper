@@ -17,6 +17,7 @@ namespace GHelper.AutoUpdate
         public bool update = false;
 
         static long lastUpdate;
+        volatile bool _checkInProgress;
 
         public AutoUpdateControl(SettingsForm settingsForm)
         {
@@ -72,12 +73,12 @@ namespace GHelper.AutoUpdate
 
         async void CheckForUpdatesAsync(bool force = false)
         {
-
             if (AppConfig.Is("skip_updates")) return;
+            if (_checkInProgress) return;
+            _checkInProgress = true;
 
             try
             {
-
                 using (var httpClient = new HttpClient())
                 {
                     httpClient.DefaultRequestHeaders.Add("User-Agent", "G-Helper App");
@@ -109,7 +110,7 @@ namespace GHelper.AutoUpdate
                         return;
                     }
 
-                    var tag = config.GetProperty("tag_name").ToString().Replace("v", "");
+                    var tag = config.GetProperty("tag_name").ToString().TrimStart('v');
                     string skipVersion = AppConfig.GetString("skip_version");
                     string skipKey = $"{tag}|{(isPrerelease ? "pre" : "stable")}";
                     var assets = config.GetProperty("assets");
@@ -122,26 +123,24 @@ namespace GHelper.AutoUpdate
                             url = assets[i].GetProperty("browser_download_url").ToString();
                     }
 
-                    if (url is null)
+                    if (url is null && assets.GetArrayLength() > 0)
                         url = assets[0].GetProperty("browser_download_url").ToString();
 
                     var gitVersion = new Version(tag);
                     var appVersion = new Version(Assembly.GetExecutingAssembly().GetName().Version.ToString());
-                    //appVersion = new Version("0.50.0.0"); 
-                    var infoVerAttr = Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyInformationalVersionAttribute>();
-                    var infoVer = infoVerAttr?.InformationalVersion?.Replace("v", "") ?? "";
-                    var shouldOfferSameNumeric = force && infoVer.Length > 0 && !string.Equals(infoVer, tag, StringComparison.OrdinalIgnoreCase);
+                    var sameMinor = gitVersion.Major == appVersion.Major && gitVersion.Minor == appVersion.Minor;
 
-                    if (gitVersion.CompareTo(appVersion) > 0 || shouldOfferSameNumeric)
+                    if (gitVersion.CompareTo(appVersion) > 0 || (force && sameMinor))
                     {
-                        versionUrl = url;
-                        update = true;
-                        settings.SetVersionLabel(Properties.Strings.DownloadUpdate + $": {appVersion.Major}.{appVersion.Minor}.{appVersion.Build} → {tag}", true);
+                        versionUrl = url ?? ReleasesUrl;
+                        update = url != null;
+                        string channelSuffix = isPrerelease ? " [pre-release]" : "";
+                        settings.SetVersionLabel(Properties.Strings.DownloadUpdate + $": {appVersion.Major}.{appVersion.Minor}.{appVersion.Build} → {tag}{channelSuffix}", true);
 
                         string[] args = Environment.GetCommandLineArgs();
                         if (args.Length > 1 && args[1] == "autoupdate")
                         {
-                            AutoUpdate(url);
+                            if (url != null) AutoUpdate(url);
                             return;
                         }
 
@@ -151,15 +150,14 @@ namespace GHelper.AutoUpdate
 
                             settings.Invoke((System.Windows.Forms.MethodInvoker)delegate
                             {
-                                dialogResult = MessageBox.Show(settings, Properties.Strings.DownloadUpdate + ": G-Helper " + tag + "?", "Update", MessageBoxButtons.YesNo);
+                                dialogResult = MessageBox.Show(settings, Properties.Strings.DownloadUpdate + ": G-Helper " + tag + channelSuffix + "?", "Update", MessageBoxButtons.YesNo);
                             });
-                            
-                            if (dialogResult == DialogResult.Yes)
+
+                            if (dialogResult == DialogResult.Yes && url != null)
                                 AutoUpdate(url);
                             else
                                 AppConfig.Set("skip_version", skipKey);
                         }
-
                     }
                     else
                     {
@@ -167,14 +165,16 @@ namespace GHelper.AutoUpdate
                         versionUrl = ReleasesUrl;
                         Logger.WriteLine($"Latest version {appVersion}");
                     }
-
                 }
             }
             catch (Exception ex)
             {
                 Logger.WriteLine("Failed to check for updates:" + ex.Message);
             }
-
+            finally
+            {
+                _checkInProgress = false;
+            }
         }
 
         public static string EscapeString(string input)
