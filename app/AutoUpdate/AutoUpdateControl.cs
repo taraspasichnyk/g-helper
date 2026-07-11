@@ -17,7 +17,7 @@ namespace GHelper.AutoUpdate
         public bool update = false;
 
         static long lastUpdate;
-        volatile bool _checkInProgress;
+        readonly SemaphoreSlim _checkSem = new SemaphoreSlim(1, 1);
 
         public AutoUpdateControl(SettingsForm settingsForm)
         {
@@ -74,8 +74,12 @@ namespace GHelper.AutoUpdate
         async void CheckForUpdatesAsync(bool force = false)
         {
             if (AppConfig.Is("skip_updates")) return;
-            if (_checkInProgress) return;
-            _checkInProgress = true;
+
+            // Passive checks: skip if already running. Forced checks (toggle): wait for any in-progress check to finish first.
+            if (force)
+                await _checkSem.WaitAsync();
+            else if (!_checkSem.Wait(0))
+                return;
 
             try
             {
@@ -173,7 +177,7 @@ namespace GHelper.AutoUpdate
             }
             finally
             {
-                _checkInProgress = false;
+                _checkSem.Release();
             }
         }
 
