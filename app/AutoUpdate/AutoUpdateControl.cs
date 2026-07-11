@@ -17,7 +17,6 @@ namespace GHelper.AutoUpdate
         public bool update = false;
 
         static long lastUpdate;
-        readonly SemaphoreSlim _checkSem = new SemaphoreSlim(1, 1);
 
         public AutoUpdateControl(SettingsForm settingsForm)
         {
@@ -45,18 +44,12 @@ namespace GHelper.AutoUpdate
             {
                 Task.Run(() =>
                 {
-                    CheckForUpdatesAsync(true);
+                    CheckForUpdatesAsync();
                 });
             } else
             {
                 LoadReleases();
             }
-        }
-
-        // Trigger an immediate release check (bypasses the 12-hour cooldown in CheckForUpdates)
-        public void RecheckNow()
-        {
-            Task.Run(() => CheckForUpdatesAsync(true));
         }
 
         public void LoadReleases()
@@ -71,15 +64,9 @@ namespace GHelper.AutoUpdate
             }
         }
 
-        async void CheckForUpdatesAsync(bool force = false)
+        async void CheckForUpdatesAsync()
         {
             if (AppConfig.Is("skip_updates")) return;
-
-            // Passive checks: skip if already running. Forced checks (toggle): wait for any in-progress check to finish first.
-            if (force)
-                await _checkSem.WaitAsync();
-            else if (!_checkSem.Wait(0))
-                return;
 
             try
             {
@@ -116,7 +103,6 @@ namespace GHelper.AutoUpdate
 
                     var tag = config.GetProperty("tag_name").ToString().TrimStart('v');
                     string skipVersion = AppConfig.GetString("skip_version");
-                    string skipKey = $"{tag}|{(isPrerelease ? "pre" : "stable")}";
                     var assets = config.GetProperty("assets");
 
                     string url = null;
@@ -132,9 +118,9 @@ namespace GHelper.AutoUpdate
 
                     var gitVersion = new Version(tag);
                     var appVersion = new Version(Assembly.GetExecutingAssembly().GetName().Version.ToString());
-                    var sameMinor = gitVersion.Major == appVersion.Major && gitVersion.Minor == appVersion.Minor;
-
-                    if (gitVersion.CompareTo(appVersion) > 0 || (force && sameMinor))
+                    bool forceChannelSwitch = AppConfig.Is("check_updates_force_channel_switch");
+                    bool isSameVersion = IsSameReleaseNumber(gitVersion, appVersion);
+                    if (gitVersion.CompareTo(appVersion) > 0 || (forceChannelSwitch && !isSameVersion))
                     {
                         versionUrl = url ?? ReleasesUrl;
                         update = url != null;
@@ -148,7 +134,7 @@ namespace GHelper.AutoUpdate
                             return;
                         }
 
-                        if (skipVersion != skipKey)
+                        if (skipVersion != tag)
                         {
                             DialogResult dialogResult = DialogResult.No;
 
@@ -160,7 +146,7 @@ namespace GHelper.AutoUpdate
                             if (dialogResult == DialogResult.Yes && url != null)
                                 AutoUpdate(url);
                             else
-                                AppConfig.Set("skip_version", skipKey);
+                                AppConfig.Set("skip_version", tag);
                         }
                     }
                     else
@@ -169,16 +155,24 @@ namespace GHelper.AutoUpdate
                         versionUrl = ReleasesUrl;
                         Logger.WriteLine($"Latest version {appVersion}");
                     }
+
+                    if (forceChannelSwitch)
+                        AppConfig.Set("check_updates_force_channel_switch", 0);
                 }
             }
             catch (Exception ex)
             {
                 Logger.WriteLine("Failed to check for updates:" + ex.Message);
             }
-            finally
-            {
-                _checkSem.Release();
-            }
+        }
+
+        static bool IsSameReleaseNumber(Version left, Version right)
+        {
+            static int Part(int value) => value < 0 ? 0 : value;
+            return left.Major == right.Major
+                && left.Minor == right.Minor
+                && Part(left.Build) == Part(right.Build)
+                && Part(left.Revision) == Part(right.Revision);
         }
 
         public static string EscapeString(string input)

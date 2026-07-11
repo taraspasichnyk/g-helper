@@ -297,12 +297,6 @@ namespace GHelper
             InitVisual();
         }
 
-        // Called by other forms (Extra) to trigger immediate recheck when user changes channel
-        public void RecheckUpdatesFromExtra()
-        {
-            updateControl?.RecheckNow();
-        }
-
         private void ButtonArmoury_Click(object? sender, EventArgs e)
         {
             var dialogResult = MessageBox.Show(this, "Armoury Crate is active, download official uninstaller app?", "Armoury Crate", MessageBoxButtons.YesNo);

@@ -147,12 +147,26 @@ namespace GHelper
             checkTopmost.Text = Properties.Strings.WindowTop;
             checkUSBC.Text = Properties.Strings.OptimizedUSBC;
             checkAutoToggleClamshellMode.Text = Properties.Strings.ToggleClamshellMode;
-            checkPrerelease.Text = "Use pre-release channel";
+            checkPrerelease.Text = "Include pre-release builds";
             checkPrerelease.Checked = AppConfig.Is("allow_prerelease");
             checkPrerelease.CheckedChanged += (s, e) => {
                 AppConfig.Set("allow_prerelease", checkPrerelease.Checked ? 1 : 0);
+                AppConfig.Set("check_updates_force_channel_switch", 1);
                 AppConfig.Set("skip_version", "");
-                try { Program.settingsForm?.RecheckUpdatesFromExtra(); } catch { }
+                try
+                {
+                    AppConfig.SaveNow();
+                    Process.Start(new ProcessStartInfo(Application.ExecutablePath)
+                    {
+                        UseShellExecute = true,
+                        WorkingDirectory = Environment.CurrentDirectory
+                    });
+                }
+                catch (Exception ex)
+                {
+                    Logger.WriteLine("Failed to restart after prerelease toggle: " + ex.Message);
+                }
+                Application.Exit();
             };
             
             labelBacklightKeyboard.Text = Properties.Strings.Keyboard;

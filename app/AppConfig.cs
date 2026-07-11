@@ -229,6 +229,22 @@ public static class AppConfig
         timer.Start();
     }
 
+    public static void SaveNow()
+    {
+        timer.Stop();
+        string jsonString;
+        lock (configLock) jsonString = JsonSerializer.Serialize(config, new JsonSerializerOptions { WriteIndented = true });
+        try
+        {
+            WriteAtomic(configFile, jsonString);
+            SyncFallbackConfig();
+        }
+        catch (Exception ex)
+        {
+            Logger.WriteLine("Config write failed: " + ex.Message);
+        }
+    }
+
     public static void Set(string name, int value)
     {
         lock (configLock) config[name] = value;
