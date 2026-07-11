@@ -147,7 +147,7 @@ namespace GHelper
             checkTopmost.Text = Properties.Strings.WindowTop;
             checkUSBC.Text = Properties.Strings.OptimizedUSBC;
             checkAutoToggleClamshellMode.Text = Properties.Strings.ToggleClamshellMode;
-            checkPrerelease.Text = Properties.Strings.UsePrereleaseChannel;
+            checkPrerelease.Text = "Use pre-release channel";
             checkPrerelease.Checked = AppConfig.Is("allow_prerelease");
             checkPrerelease.CheckedChanged += (s, e) => {
                 AppConfig.Set("allow_prerelease", checkPrerelease.Checked ? 1 : 0);

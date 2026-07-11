@@ -63,15 +63,6 @@ namespace GHelper.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Acceleration.
         /// </summary>
-        /// <summary>
-        ///   Looks up a localized string similar to Use pre-release channel.
-        /// </summary>
-        internal static string UsePrereleaseChannel {
-            get {
-                return ResourceManager.GetString("UsePrereleaseChannel", resourceCulture);
-            }
-        }
-
         internal static string Acceleration {
             get {
                 return ResourceManager.GetString("Acceleration", resourceCulture);

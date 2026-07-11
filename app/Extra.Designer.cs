@@ -1232,7 +1232,7 @@ namespace GHelper
             checkPrerelease.Padding = new Padding(3);
             checkPrerelease.Size = new Size(917, 42);
             checkPrerelease.TabIndex = 10;
-            checkPrerelease.Text = Properties.Strings.UsePrereleaseChannel;
+            checkPrerelease.Text = "Use pre-release channel";
             checkPrerelease.UseVisualStyleBackColor = true;
             //
             // checkTopmost

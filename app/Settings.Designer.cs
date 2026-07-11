@@ -2059,7 +2059,6 @@ namespace GHelper
             buttonArmoury.UseVisualStyleBackColor = false;
             buttonArmoury.Visible = false;            
             // 
-            // 
             // labelVersion
             // 
             labelVersion.Cursor = Cursors.Hand;
