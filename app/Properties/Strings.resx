@@ -812,6 +812,9 @@ Do you still want to continue?</value>
   <data name="Unmuted" xml:space="preserve">
     <value>Unmuted</value>
   </data>
+  <data name="PreReleaseUpdates" xml:space="preserve">
+    <value>Include pre-release updates</value>
+  </data>
   <data name="Updates" xml:space="preserve">
     <value>Updates</value>
   </data>

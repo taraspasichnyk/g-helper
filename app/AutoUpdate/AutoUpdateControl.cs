@@ -68,37 +68,78 @@ namespace GHelper.AutoUpdate
 
             if (AppConfig.Is("skip_updates")) return;
 
+            bool preRelease = AppConfig.Is("pre_release");
+
             try
             {
 
                 using (var httpClient = new HttpClient())
                 {
                     httpClient.DefaultRequestHeaders.Add("User-Agent", "G-Helper App");
-                    var json = await httpClient.GetStringAsync("https://api.github.com/repos/seerge/g-helper/releases/latest");
-                    var config = JsonSerializer.Deserialize<JsonElement>(json);
-                    var tag = config.GetProperty("tag_name").ToString().Replace("v", "");
-                    var assets = config.GetProperty("assets");
 
-                    string url = null;
+                    string tag;
+                    string? url = null;
+                    bool isPreRelease = false;
 
-                    for (int i = 0; i < assets.GetArrayLength(); i++)
+                    if (preRelease)
                     {
-                        if (assets[i].GetProperty("browser_download_url").ToString().Contains(".zip"))
-                            url = assets[i].GetProperty("browser_download_url").ToString();
-                    }
+                        var json = await httpClient.GetStringAsync("https://api.github.com/repos/seerge/g-helper/releases");
+                        var releases = JsonSerializer.Deserialize<JsonElement>(json);
 
-                    if (url is null)
-                        url = assets[0].GetProperty("browser_download_url").ToString();
+                        JsonElement? chosen = null;
+                        for (int r = 0; r < releases.GetArrayLength(); r++)
+                        {
+                            var rel = releases[r];
+                            if (rel.GetProperty("draft").GetBoolean()) continue;
+                            chosen = rel;
+                            break;
+                        }
+
+                        if (chosen is null) return;
+
+                        tag = chosen.Value.GetProperty("tag_name").ToString().Replace("v", "");
+                        isPreRelease = chosen.Value.GetProperty("prerelease").GetBoolean();
+                        var assets = chosen.Value.GetProperty("assets");
+
+                        for (int i = 0; i < assets.GetArrayLength(); i++)
+                        {
+                            if (assets[i].GetProperty("browser_download_url").ToString().Contains(".zip"))
+                                url = assets[i].GetProperty("browser_download_url").ToString();
+                        }
+
+                        if (url is null && assets.GetArrayLength() > 0)
+                            url = assets[0].GetProperty("browser_download_url").ToString();
+                    }
+                    else
+                    {
+                        var json = await httpClient.GetStringAsync("https://api.github.com/repos/seerge/g-helper/releases/latest");
+                        var config = JsonSerializer.Deserialize<JsonElement>(json);
+                        tag = config.GetProperty("tag_name").ToString().Replace("v", "");
+                        var assets = config.GetProperty("assets");
+
+                        for (int i = 0; i < assets.GetArrayLength(); i++)
+                        {
+                            if (assets[i].GetProperty("browser_download_url").ToString().Contains(".zip"))
+                                url = assets[i].GetProperty("browser_download_url").ToString();
+                        }
+
+                        if (url is null)
+                            url = assets[0].GetProperty("browser_download_url").ToString();
+                    }
 
                     var gitVersion = new Version(tag);
                     var appVersion = new Version(Assembly.GetExecutingAssembly().GetName().Version.ToString());
-                    //appVersion = new Version("0.50.0.0"); 
 
                     if (gitVersion.CompareTo(appVersion) > 0)
                     {
                         versionUrl = url;
                         update = true;
-                        settings.SetVersionLabel(Properties.Strings.DownloadUpdate + $": {appVersion.Major}.{appVersion.Minor}.{appVersion.Build} → {tag}", true);
+
+                        string label = isPreRelease
+                            ? Properties.Strings.DownloadUpdate + $" (Pre-release): {appVersion.Major}.{appVersion.Minor}.{appVersion.Build} → {tag}"
+                            : Properties.Strings.DownloadUpdate + $": {appVersion.Major}.{appVersion.Minor}.{appVersion.Build} → {tag}";
+
+                        settings.SetVersionLabel(label, true);
 
                         string[] args = Environment.GetCommandLineArgs();
                         if (force || args.Length > 1 && args[1] == "autoupdate")
@@ -111,9 +152,11 @@ namespace GHelper.AutoUpdate
                         {
                             DialogResult dialogResult = DialogResult.No;
 
+                            string updateTitle = isPreRelease ? "Update (Pre-release)" : "Update";
+
                             settings.Invoke((System.Windows.Forms.MethodInvoker)delegate
                             {
-                                dialogResult = MessageBox.Show(settings, Properties.Strings.DownloadUpdate + ": G-Helper " + tag + "?", "Update", MessageBoxButtons.YesNo);
+                                dialogResult = MessageBox.Show(settings, Properties.Strings.DownloadUpdate + ": G-Helper " + tag + (isPreRelease ? " (Pre-release)" : "") + "?", updateTitle, MessageBoxButtons.YesNo);
                             });
                             
                             if (dialogResult == DialogResult.Yes)
