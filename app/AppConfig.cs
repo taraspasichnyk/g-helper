@@ -95,6 +95,12 @@ public static class AppConfig
         catch (Exception ex) { Logger.WriteLine("Config write failed: " + ex.Message); }
     }
 
+    public static void SaveNow()
+    {
+        timer.Stop();
+        Timer_Elapsed(null, null!);
+    }
+
     private static void WriteAtomic(string path, string content)
     {
         string tmp = path + ".tmp";

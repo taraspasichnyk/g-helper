@@ -147,6 +147,7 @@ namespace GHelper
             checkTopmost.Text = Properties.Strings.WindowTop;
             checkUSBC.Text = Properties.Strings.OptimizedUSBC;
             checkAutoToggleClamshellMode.Text = Properties.Strings.ToggleClamshellMode;
+            checkPreRelease.Text = Properties.Strings.PreReleaseUpdates;
 
             labelBacklightKeyboard.Text = Properties.Strings.Keyboard;
             labelBacklightBar.Text = Properties.Strings.Lightbar;
@@ -411,6 +412,9 @@ namespace GHelper
             //checkAutoToggleClamshellMode.Visible = clamshellControl.IsExternalDisplayConnected();
             checkAutoToggleClamshellMode.Checked = AppConfig.Is("toggle_clamshell_mode");
             checkAutoToggleClamshellMode.CheckedChanged += checkAutoToggleClamshellMode_CheckedChanged;
+
+            checkPreRelease.Checked = AppConfig.Is("pre_release");
+            checkPreRelease.CheckedChanged += CheckPreRelease_CheckedChanged;
 
             checkTopmost.Checked = AppConfig.Is("topmost");
             checkTopmost.CheckedChanged += CheckTopmost_CheckedChanged; ;
@@ -857,6 +861,18 @@ namespace GHelper
                 ClamshellModeControl.DisableClamshellMode();
             }
 
+        }
+
+        private void CheckPreRelease_CheckedChanged(object? sender, EventArgs e)
+        {
+            AppConfig.Set("pre_release", checkPreRelease.Checked ? 1 : 0);
+            AppConfig.SaveNow();
+
+            // Reset skip_version so the newly selected channel is checked on relaunch
+            AppConfig.Set("skip_version", "");
+            AppConfig.SaveNow();
+
+            Application.Restart();
         }
 
         private void panelAPU_Paint(object sender, PaintEventArgs e)

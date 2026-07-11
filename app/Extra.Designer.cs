@@ -112,6 +112,7 @@ namespace GHelper
             labelSettings = new Label();
             panelSettings = new Panel();
             checkAutoToggleClamshellMode = new CheckBox();
+            checkPreRelease = new CheckBox();
             checkTopmost = new CheckBox();
             checkNoOverdrive = new CheckBox();
             checkBootSound = new CheckBox();
@@ -1192,6 +1193,7 @@ namespace GHelper
             panelSettings.AccessibleRole = AccessibleRole.Grouping;
             panelSettings.AutoSize = true;
             panelSettings.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+            panelSettings.Controls.Add(checkPreRelease);
             panelSettings.Controls.Add(checkAutoToggleClamshellMode);
             panelSettings.Controls.Add(checkTopmost);
             panelSettings.Controls.Add(checkNoOverdrive);
@@ -1220,6 +1222,19 @@ namespace GHelper
             checkAutoToggleClamshellMode.TabIndex = 9;
             checkAutoToggleClamshellMode.Text = "Auto Toggle Clamshell Mode";
             checkAutoToggleClamshellMode.UseVisualStyleBackColor = true;
+            //
+            // checkPreRelease
+            //
+            checkPreRelease.AutoSize = true;
+            checkPreRelease.Dock = DockStyle.Top;
+            checkPreRelease.Location = new Point(21, 467);
+            checkPreRelease.Margin = new Padding(5, 3, 5, 3);
+            checkPreRelease.Name = "checkPreRelease";
+            checkPreRelease.Padding = new Padding(3);
+            checkPreRelease.Size = new Size(917, 42);
+            checkPreRelease.TabIndex = 10;
+            checkPreRelease.Text = Strings.PreReleaseUpdates;
+            checkPreRelease.UseVisualStyleBackColor = true;
             //
             // checkTopmost
             // 
@@ -1799,6 +1814,7 @@ namespace GHelper
         private Slider sliderBrightness;
         private PictureBox pictureLog;
         private CheckBox checkAutoToggleClamshellMode;
+        private CheckBox checkPreRelease;
         private Label labelFNE;
         private RComboBox comboFNE;
         private RTextBox textFNE;

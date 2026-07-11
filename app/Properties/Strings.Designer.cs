@@ -1962,6 +1962,15 @@ namespace GHelper.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Include pre-release updates.
+        /// </summary>
+        internal static string PreReleaseUpdates {
+            get {
+                return ResourceManager.GetString("PreReleaseUpdates", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Quit.
         /// </summary>
         internal static string Quit {
