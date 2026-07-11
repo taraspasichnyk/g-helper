@@ -112,6 +112,7 @@ namespace GHelper
             labelSettings = new Label();
             panelSettings = new Panel();
             checkAutoToggleClamshellMode = new CheckBox();
+            checkPrerelease = new CheckBox();
             checkTopmost = new CheckBox();
             checkNoOverdrive = new CheckBox();
             checkBootSound = new CheckBox();
@@ -1193,6 +1194,7 @@ namespace GHelper
             panelSettings.AutoSize = true;
             panelSettings.AutoSizeMode = AutoSizeMode.GrowAndShrink;
             panelSettings.Controls.Add(checkAutoToggleClamshellMode);
+            panelSettings.Controls.Add(checkPrerelease);
             panelSettings.Controls.Add(checkTopmost);
             panelSettings.Controls.Add(checkNoOverdrive);
             panelSettings.Controls.Add(checkKeystoneSound);
@@ -1220,6 +1222,18 @@ namespace GHelper
             checkAutoToggleClamshellMode.TabIndex = 9;
             checkAutoToggleClamshellMode.Text = "Auto Toggle Clamshell Mode";
             checkAutoToggleClamshellMode.UseVisualStyleBackColor = true;
+            // 
+            // checkPrerelease
+            // 
+            checkPrerelease.AutoSize = true;
+            checkPrerelease.Dock = DockStyle.Top;
+            checkPrerelease.Location = new Point(21, 467);
+            checkPrerelease.Name = "checkPrerelease";
+            checkPrerelease.Padding = new Padding(3);
+            checkPrerelease.Size = new Size(917, 42);
+            checkPrerelease.TabIndex = 10;
+            checkPrerelease.Text = Properties.Strings.UsePrereleaseChannel;
+            checkPrerelease.UseVisualStyleBackColor = true;
             //
             // checkTopmost
             // 
@@ -1799,6 +1813,7 @@ namespace GHelper
         private Slider sliderBrightness;
         private PictureBox pictureLog;
         private CheckBox checkAutoToggleClamshellMode;
+        private CheckBox checkPrerelease;
         private Label labelFNE;
         private RComboBox comboFNE;
         private RTextBox textFNE;

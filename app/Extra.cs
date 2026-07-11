@@ -147,7 +147,13 @@ namespace GHelper
             checkTopmost.Text = Properties.Strings.WindowTop;
             checkUSBC.Text = Properties.Strings.OptimizedUSBC;
             checkAutoToggleClamshellMode.Text = Properties.Strings.ToggleClamshellMode;
-
+            checkPrerelease.Text = Properties.Strings.UsePrereleaseChannel;
+            checkPrerelease.Checked = AppConfig.Is("allow_prerelease");
+            checkPrerelease.CheckedChanged += (s, e) => {
+                AppConfig.Set("allow_prerelease", checkPrerelease.Checked ? 1 : 0);
+                try { Program.settingsForm?.RecheckUpdatesFromExtra(); } catch { }
+            };
+            
             labelBacklightKeyboard.Text = Properties.Strings.Keyboard;
             labelBacklightBar.Text = Properties.Strings.Lightbar;
             labelBacklightLid.Text = Properties.Strings.Lid;

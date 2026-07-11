@@ -51,6 +51,12 @@ namespace GHelper.AutoUpdate
             }
         }
 
+        // Trigger an immediate release check (bypasses the 12-hour cooldown in CheckForUpdates)
+        public void RecheckNow()
+        {
+            Task.Run(() => CheckForUpdatesAsync(true));
+        }
+
         public void LoadReleases()
         {
             try
@@ -74,8 +80,30 @@ namespace GHelper.AutoUpdate
                 using (var httpClient = new HttpClient())
                 {
                     httpClient.DefaultRequestHeaders.Add("User-Agent", "G-Helper App");
-                    var json = await httpClient.GetStringAsync("https://api.github.com/repos/seerge/g-helper/releases/latest");
-                    var config = JsonSerializer.Deserialize<JsonElement>(json);
+                    // Fetch releases array so pre-releases (published) can be considered as well
+                    var json = await httpClient.GetStringAsync("https://api.github.com/repos/seerge/g-helper/releases");
+                    var releases = JsonSerializer.Deserialize<JsonElement>(json);
+
+                    JsonElement config = default;
+                    bool found = false;
+                    bool allowPrerelease = AppConfig.Is("allow_prerelease");
+                    // Choose first non-draft release. If prerelease channel is disabled, skip prereleases.
+                    for (int r = 0; r < releases.GetArrayLength(); r++)
+                    {
+                        var candidate = releases[r];
+                        if (candidate.GetProperty("draft").GetBoolean()) continue;
+                        if (!allowPrerelease && candidate.GetProperty("prerelease").GetBoolean()) continue;
+                        config = candidate;
+                        found = true;
+                        break;
+                    }
+
+                    if (!found)
+                    {
+                        Logger.WriteLine("No suitable releases found");
+                        return;
+                    }
+
                     var tag = config.GetProperty("tag_name").ToString().Replace("v", "");
                     var assets = config.GetProperty("assets");
 
@@ -90,43 +118,10 @@ namespace GHelper.AutoUpdate
                     if (url is null)
                         url = assets[0].GetProperty("browser_download_url").ToString();
 
-                    var gitVersion = new Version(tag);
-                    var appVersion = new Version(Assembly.GetExecutingAssembly().GetName().Version.ToString());
-                    //appVersion = new Version("0.50.0.0"); 
-
-                    if (gitVersion.CompareTo(appVersion) > 0)
-                    {
-                        versionUrl = url;
-                        update = true;
-                        settings.SetVersionLabel(Properties.Strings.DownloadUpdate + $": {appVersion.Major}.{appVersion.Minor}.{appVersion.Build} → {tag}", true);
-
-                        string[] args = Environment.GetCommandLineArgs();
-                        if (force || args.Length > 1 && args[1] == "autoupdate")
-                        {
-                            AutoUpdate(url);
-                            return;
-                        }
-
-                        if (AppConfig.GetString("skip_version") != tag)
-                        {
-                            DialogResult dialogResult = DialogResult.No;
-
-                            settings.Invoke((System.Windows.Forms.MethodInvoker)delegate
-                            {
-                                dialogResult = MessageBox.Show(settings, Properties.Strings.DownloadUpdate + ": G-Helper " + tag + "?", "Update", MessageBoxButtons.YesNo);
-                            });
-                            
-                            if (dialogResult == DialogResult.Yes)
-                                AutoUpdate(url);
-                            else
-                                AppConfig.Set("skip_version", tag);
-                        }
-
-                    }
-                    else
-                    {
-                        Logger.WriteLine($"Latest version {appVersion}");
-                    }
+                    var gitVersion = new Version(tag);                    var appVersion = new Version(Assembly.GetExecutingAssembly().GetName().Version.ToString());                    //appVersion = new Version("0.50.0.0"); 
+                    // Gather informational version (may contain pre-release metadata)                    var infoVerAttr = Assembly.GetExecutingAssembly().GetCustomAttribute<System.Reflection.AssemblyInformationalVersionAttribute>();                    var infoVer = infoVerAttr?.InformationalVersion ?? "";                    infoVer = infoVer.Replace("v", "");                    if (gitVersion.CompareTo(appVersion) > 0)                    {                        versionUrl = url;                        update = true;                        settings.SetVersionLabel(Properties.Strings.DownloadUpdate + $": {appVersion.Major}.{appVersion.Minor}.{appVersion.Build} → {tag}", true);                        string[] args = Environment.GetCommandLineArgs();                        if (force || args.Length > 1 && args[1] == "autoupdate")                        {                            AutoUpdate(url);                            return;                        }                        if (AppConfig.GetString("skip_version") != tag)                        {                            DialogResult dialogResult = DialogResult.No;                            settings.Invoke((System.Windows.Forms.MethodInvoker)delegate
+                            {                                dialogResult = MessageBox.Show(settings, Properties.Strings.DownloadUpdate + ": G-Helper " + tag + "?", "Update", MessageBoxButtons.YesNo);                            });                                                        if (dialogResult == DialogResult.Yes)                                AutoUpdate(url);                            else                                AppConfig.Set("skip_version", tag);                        }                    }                    else                    {                        // If forced check (user changed channel) and the selected release tag differs from current informational version,                        // offer the user to switch to the selected channel's release even if numeric version is not greater.                        if (force && !string.IsNullOrEmpty(infoVer) && infoVer != tag)                        {                            versionUrl = url;                            update = true;                            settings.SetVersionLabel(Properties.Strings.DownloadUpdate + $": {appVersion.Major}.{appVersion.Minor}.{appVersion.Build} → {tag}", true);                            if (AppConfig.GetString("skip_version") != tag)                            {                                DialogResult dialogResult = DialogResult.No;                                settings.Invoke((System.Windows.Forms.MethodInvoker)delegate
+                                {                                    dialogResult = MessageBox.Show(settings, Properties.Strings.DownloadUpdate + ": G-Helper " + tag + "?", "Update", MessageBoxButtons.YesNo);                                });                                if (dialogResult == DialogResult.Yes)                                    AutoUpdate(url);                                else                                    AppConfig.Set("skip_version", tag);                            }                        }                        else                        {                            Logger.WriteLine($"Latest version {appVersion}");                        }                    }
 
                 }
             }
